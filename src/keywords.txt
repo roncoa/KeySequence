@@ -1,0 +1,10 @@
+// keywords.txt
+KeySequence	KEYWORD1
+begin	KEYWORD2
+sendSequence	KEYWORD2
+sendSequenceWithDelay	KEYWORD2
+setDefaultDelay	KEYWORD2
+getDefaultDelay	KEYWORD2
+setDebug	KEYWORD2
+isDebugEnabled	KEYWORD2
+validateSequence	KEYWORD2
