@@ -17,6 +17,8 @@ class KeySequence {
    void setDebug(bool enabled);                        // Abilita/disabilita debug
    bool isDebugEnabled();                              // Stato debug
    bool validateSequence(String sequence);              // Valida una sequenza
+   void setAutoRelease(bool enabled);                  // Imposta rilascio automatico
+   bool isAutoReleaseEnabled();                        // Stato rilascio automatico
    
  private:
    // Metodi privati
@@ -49,6 +51,7 @@ class KeySequence {
    int pressedCount;               // Numero tasti premuti
    int defaultDelay;               // Delay predefinito
    bool debug;                     // Stato debug
+   bool autoRelease;               // Stato rilascio automatico
 };
 
 #endif
