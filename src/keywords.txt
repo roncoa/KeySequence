@@ -8,3 +8,5 @@ getDefaultDelay	KEYWORD2
 setDebug	KEYWORD2
 isDebugEnabled	KEYWORD2
 validateSequence	KEYWORD2
+setAutoRelease	KEYWORD2
+isAutoReleaseEnabled	KEYWORD2
