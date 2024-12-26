@@ -106,6 +106,21 @@ keys.sendSequence("{CTRL}cv");
 keys.sendSequence("{CTRL}c{RELEASE}v");
 ```
 
+### Controllo Auto-Release
+È possibile controllare se i tasti vengono rilasciati automaticamente alla fine di ogni sequenza:
+```cpp
+// Disabilita il rilascio automatico alla fine della sequenza
+keys.setAutoRelease(false);
+
+// Riabilita il rilascio automatico (default)
+keys.setAutoRelease(true);
+
+// Verifica lo stato corrente
+bool isAutoRelease = keys.isAutoReleaseEnabled();
+```
+
+Di default autoRelease è abilitato (true) per mantenere la compatibilità con le versioni precedenti.
+
 ### Ritardi
 ```cpp
 // Imposta il ritardo predefinito tra le sequenze
@@ -309,7 +324,12 @@ KeySequence/
 
 ## Cronologia Versioni
 
-### v1.0.0 (Attuale)
+### v1.1.0
+- Aggiunto controllo configurabile dell'auto-release dei tasti
+- Nuovi metodi setAutoRelease() e isAutoReleaseEnabled()
+- Comportamento retrocompatibile (auto-release abilitato di default)
+
+### v1.0.0
 - Release iniziale
 - Supporto sequenze base
 - Gestione tasti speciali
