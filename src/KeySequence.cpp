@@ -17,6 +17,7 @@ const char KeySequence::ERR_UNRECOGNIZED_KEY[] PROGMEM = "Tasto speciale non ric
 KeySequence::KeySequence() {
   defaultDelay = 100;
   debug = false;
+  autoRelease = true;  // Default a true per mantenere il comportamento originale
   pressedCount = 0;
   for(int i = 0; i < BUFFER_SIZE; i++) {
     pressedKeys[i] = 0;
@@ -44,6 +45,14 @@ void KeySequence::setDebug(bool enabled) {
 
 bool KeySequence::isDebugEnabled() {
   return debug;
+}
+
+void KeySequence::setAutoRelease(bool enabled) {
+  autoRelease = enabled;
+}
+
+bool KeySequence::isAutoReleaseEnabled() {
+  return autoRelease;
 }
 
 void KeySequence::sendSequence(String sequence) {
@@ -303,91 +312,94 @@ bool KeySequence::processSpecialKey(String specialKey) {
     Keyboard.press(KEY_F11);
   }
   else if (specialKey == "F12") {
-   pressedKeys[pressedCount++] = KEY_F12;
-   Keyboard.press(KEY_F12);
- }
- else if (specialKey == "SPACE") {
-   pressedKeys[pressedCount++] = ' ';
-   Keyboard.press(' ');
- }
- else if (specialKey == "PRINTSCREEN" || specialKey == "PRTSC") {
-   pressedKeys[pressedCount++] = 206;
-   Keyboard.press(206);
- }
- else if (specialKey == "SCROLLLOCK" || specialKey == "SCRLK") {
-   pressedKeys[pressedCount++] = KEY_SCROLL_LOCK;
-   Keyboard.press(KEY_SCROLL_LOCK);
- }
- else if (specialKey == "PAUSE" || specialKey == "BREAK") {
-   pressedKeys[pressedCount++] = KEY_PAUSE;
-   Keyboard.press(KEY_PAUSE);
- }
- else if (specialKey == "NUMLOCK" || specialKey == "NUMLK") {
-   pressedKeys[pressedCount++] = KEY_NUM_LOCK;
-   Keyboard.press(KEY_NUM_LOCK);
- }
- else if (specialKey == "CAPSLOCK" || specialKey == "CAPS") {
-   pressedKeys[pressedCount++] = KEY_CAPS_LOCK;
-   Keyboard.press(KEY_CAPS_LOCK);
- }
- else if (specialKey == "MENU" || specialKey == "APP") {
-   pressedKeys[pressedCount++] = KEY_MENU;
-   Keyboard.press(KEY_MENU);
- }
- else {
-   if(debug) {
-     Serial.print((__FlashStringHelper*)ERR_UNRECOGNIZED_KEY);
-     Serial.println(specialKey);
-   }
-   return false;
- }
- return true;
+    pressedKeys[pressedCount++] = KEY_F12;
+    Keyboard.press(KEY_F12);
+  }
+  else if (specialKey == "SPACE") {
+    pressedKeys[pressedCount++] = ' ';
+    Keyboard.press(' ');
+  }
+  else if (specialKey == "PRINTSCREEN" || specialKey == "PRTSC") {
+    pressedKeys[pressedCount++] = 206;
+    Keyboard.press(206);
+  }
+  else if (specialKey == "SCROLLLOCK" || specialKey == "SCRLK") {
+    pressedKeys[pressedCount++] = KEY_SCROLL_LOCK;
+    Keyboard.press(KEY_SCROLL_LOCK);
+  }
+  else if (specialKey == "PAUSE" || specialKey == "BREAK") {
+    pressedKeys[pressedCount++] = KEY_PAUSE;
+    Keyboard.press(KEY_PAUSE);
+  }
+  else if (specialKey == "NUMLOCK" || specialKey == "NUMLK") {
+    pressedKeys[pressedCount++] = KEY_NUM_LOCK;
+    Keyboard.press(KEY_NUM_LOCK);
+  }
+  else if (specialKey == "CAPSLOCK" || specialKey == "CAPS") {
+    pressedKeys[pressedCount++] = KEY_CAPS_LOCK;
+    Keyboard.press(KEY_CAPS_LOCK);
+  }
+  else if (specialKey == "MENU" || specialKey == "APP") {
+    pressedKeys[pressedCount++] = KEY_MENU;
+    Keyboard.press(KEY_MENU);
+  }
+  else {
+    if(debug) {
+      Serial.print((__FlashStringHelper*)ERR_UNRECOGNIZED_KEY);
+      Serial.println(specialKey);
+    }
+    return false;
+  }
+  return true;
 }
 
 void KeySequence::sendSequenceWithDelay(String sequence, int delayTime) {
- if(!validateSequence(sequence)) {
-   if(debug) Serial.println((__FlashStringHelper*)ERR_INVALID_SEQUENCE);
-   return;
- }
+  if(!validateSequence(sequence)) {
+    if(debug) Serial.println((__FlashStringHelper*)ERR_INVALID_SEQUENCE);
+    return;
+  }
  
- bool inSpecialKey = false;
- String specialKey = "";
- pressedCount = 0;  // Reset contatore all'inizio della sequenza
- Keyboard.releaseAll(); // Reset iniziale dello stato
+  bool inSpecialKey = false;
+  String specialKey = "";
+  pressedCount = 0;
+  Keyboard.releaseAll(); // Reset iniziale dello stato
  
- for (int i = 0; i < sequence.length(); i++) {
-   char currentChar = sequence.charAt(i);
+  for (int i = 0; i < sequence.length(); i++) {
+    char currentChar = sequence.charAt(i);
    
-   if (currentChar == '{') {
-     inSpecialKey = true;
-     continue;
-   }
+    if (currentChar == '{') {
+      inSpecialKey = true;
+      continue;
+    }
    
-   if (currentChar == '}') {
-     inSpecialKey = false;
-     bool recognized = processSpecialKey(specialKey);
-     if (!recognized) {
-       for(unsigned int j = 0; j < specialKey.length(); j++) {
-         pressKey(specialKey.charAt(j));  // Usa pressKey invece di press+release
-       }
-     }
-     specialKey = "";
-     continue;
-   }
+    if (currentChar == '}') {
+      inSpecialKey = false;
+      bool recognized = processSpecialKey(specialKey);
+      if (!recognized) {
+        for(unsigned int j = 0; j < specialKey.length(); j++) {
+          pressKey(specialKey.charAt(j));
+        }
+      }
+      specialKey = "";
+      continue;
+    }
    
-   if (inSpecialKey) {
-     specialKey += currentChar;
-   }
-   else {
-     pressKey(currentChar);  // Usa pressKey per i caratteri normali
-   }
- }
+    if (inSpecialKey) {
+      specialKey += currentChar;
+    }
+    else {
+      pressKey(currentChar);
+    }
+  }
  
- if (inSpecialKey && debug) {
-   Serial.println((__FlashStringHelper*)ERR_INCOMPLETE_SEQUENCE);
- }
+  if (inSpecialKey && debug) {
+    Serial.println((__FlashStringHelper*)ERR_INCOMPLETE_SEQUENCE);
+  }
  
- delay(delayTime);
- Keyboard.releaseAll();  // Release solo alla fine della sequenza
- pressedCount = 0;       // Reset contatore
+  delay(delayTime);
+  
+  if (autoRelease) {  // Usa la variabile membro per decidere se rilasciare
+    Keyboard.releaseAll();
+    pressedCount = 0;
+  }
 }
