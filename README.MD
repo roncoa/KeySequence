@@ -315,11 +315,18 @@ Tasto speciale non riconosciuto: XYZ
 ```
 KeySequence/
 │
-├── KeySequence.h       // File header principale
-├── KeySequence.cpp     // File implementazione
-├── keywords.txt        // Keywords IDE
-└── examples/
-    └── EsempioBase/   // Sketch di esempio
+├── examples/
+│   ├── ESP32S3_Basic/
+│   │   └── ESP32S3_Basic.ino
+│   └── Leonardo_Basic/
+│       └── Leonardo_Basic.ino
+│
+├── src/
+│   ├── KeySequence.h
+│   └── KeySequence.cpp
+│
+├── keywords.txt
+└── library.properties
 ```
 
 ## Cronologia Versioni
