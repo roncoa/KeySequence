@@ -50,4 +50,45 @@ void setup() {
   keys.setAutoRelease(false);
 }
 
-[resto del codice come prima...]
+void loop() {
+  // Gestione debounce del pulsante
+  int reading = digitalRead(buttonPin);
+  
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();
+  }
+  
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading == LOW) { // Pulsante premuto
+      // Esempio 1: Apertura del blocco note in Windows
+      keys.setAutoRelease(true); // Riabilita l'auto-release
+      keys.sendSequence("{GUI}r{DELAY200}notepad{ENTER}");
+      delay(1000); // Attendi l'apertura del blocco note
+      
+      // Esempio 2: Scrittura di testo con formattazione
+      keys.sendSequence("ESP32-S3 Test{ENTER}");
+      keys.sendSequence("{CTRL}b"); // Bold
+      keys.sendSequence("Questo testo e' in grassetto{ENTER}");
+      keys.sendSequence("{CTRL}b"); // Disattiva Bold
+      
+      // Esempio 3: Combinazione di tasti senza auto-release
+      keys.setAutoRelease(false);
+      keys.sendSequence("{CTRL}{SHIFT}"); // Mantiene CTRL+SHIFT premuti
+      keys.sendSequence("test"); // Scrive in maiuscolo a causa di SHIFT
+      keys.sendSequence("{RELEASE}"); // Rilascia esplicitamente
+      
+      // Esempio 4: Uso dei ritardi inline
+      keys.sendSequence("{DELAY500}"); // Attende 500ms
+      keys.sendSequence("Testo dopo il ritardo{ENTER}");
+      
+      // Esempio 5: Salvataggio del file
+      keys.setAutoRelease(true);
+      keys.sendSequence("{CTRL}s"); // CTRL+S
+      delay(500);
+      keys.sendSequence("test_esp32s3.txt{ENTER}");
+    }
+  }
+  
+  lastButtonState = reading;
+  delay(10); // Piccolo delay per stabilità
+}
