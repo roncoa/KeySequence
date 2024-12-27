@@ -14,9 +14,11 @@
  *   il caricamento del programma
  */
 
+#include "USB.h"
+#include "USBHIDKeyboard.h"
 #include "KeySequence.h"
 
-// Istanza della classe KeySequence
+USBHIDKeyboard Keyboard;
 KeySequence keys;
 
 // Pin per il pulsante di trigger (esempio con GPIO5)
@@ -26,10 +28,16 @@ unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
 
 void setup() {
-  // Inizializza la tastiera USB
+  // Inizializza USB e HID
+  USB.begin();
+  Keyboard.begin();
+  delay(1000);  // Attendi l'inizializzazione USB
+  
+  // Inizializza la tastiera KeySequence
   keys.begin();
   
   // Abilita il debug seriale
+  Serial.begin(115200);
   keys.setDebug(true);
   
   // Configura il pulsante con pull-up interno
@@ -42,44 +50,4 @@ void setup() {
   keys.setAutoRelease(false);
 }
 
-void loop() {
-  // Gestione debounce del pulsante
-  int reading = digitalRead(buttonPin);
-  
-  if (reading != lastButtonState) {
-    lastDebounceTime = millis();
-  }
-  
-  if ((millis() - lastDebounceTime) > debounceDelay) {
-    if (reading == LOW) { // Pulsante premuto
-      // Esempio 1: Apertura del blocco note in Windows
-      keys.setAutoRelease(true); // Riabilita l'auto-release
-      keys.sendSequence("{GUI}r{DELAY200}notepad{ENTER}");
-      delay(1000); // Attendi l'apertura del blocco note
-      
-      // Esempio 2: Scrittura di testo con formattazione
-      keys.sendSequence("ESP32-S3 Test{ENTER}");
-      keys.sendSequence("{CTRL}b"); // Bold
-      keys.sendSequence("Questo testo e' in grassetto{ENTER}");
-      keys.sendSequence("{CTRL}b"); // Disattiva Bold
-      
-      // Esempio 3: Combinazione di tasti senza auto-release
-      keys.setAutoRelease(false);
-      keys.sendSequence("{CTRL}{SHIFT}"); // Mantiene CTRL+SHIFT premuti
-      keys.sendSequence("test"); // Scrive in maiuscolo a causa di SHIFT
-      keys.sendSequence("{RELEASE}"); // Rilascia esplicitamente
-      
-      // Esempio 4: Uso dei ritardi inline
-      keys.sendSequence("{DELAY500}"); // Attende 500ms
-      keys.sendSequence("Testo dopo il ritardo{ENTER}");
-      
-      // Esempio 5: Salvataggio del file
-      keys.setAutoRelease(true);
-      keys.sendSequence("{CTRL}s"); // CTRL+S
-      delay(500);
-      keys.sendSequence("test_esp32s3.txt{ENTER}");
-    }
-  }
-  
-  lastButtonState = reading;
-}
+[resto del codice come prima...]
