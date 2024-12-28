@@ -331,6 +331,9 @@ KeySequence/
 
 ## Cronologia Versioni
 
+### v1.1.1
+- Bug fix, migliorie varie
+
 ### v1.1.0
 - Aggiunto controllo configurabile dell'auto-release dei tasti
 - Nuovi metodi setAutoRelease() e isAutoReleaseEnabled()
