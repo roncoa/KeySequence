@@ -1,18 +1,17 @@
-// KeySequence.cpp
 #include "KeySequence.h"
 
-// Definizione messaggi di errore
-const char KeySequence::ERR_SEQ_TOO_LONG[] PROGMEM = "Errore: sequenza troppo lunga";
-const char KeySequence::ERR_NESTED_BRACKET[] PROGMEM = "Errore: parentesi graffa aperta dentro un comando";
-const char KeySequence::ERR_UNOPENED_BRACKET[] PROGMEM = "Errore: parentesi graffa chiusa senza apertura";
-const char KeySequence::ERR_INVALID_DELAY[] PROGMEM = "Errore: valore delay non numerico";
-const char KeySequence::ERR_DELAY_TOO_LARGE[] PROGMEM = "Errore: valore delay troppo grande";
-const char KeySequence::ERR_SPECIAL_TOO_LONG[] PROGMEM = "Errore: comando speciale troppo lungo";
-const char KeySequence::ERR_UNBALANCED_BRACKETS[] PROGMEM = "Errore: parentesi graffe non bilanciate";
-const char KeySequence::ERR_BUFFER_FULL[] PROGMEM = "Errore: buffer tasti pieno";
-const char KeySequence::ERR_INVALID_SEQUENCE[] PROGMEM = "Sequenza non valida";
-const char KeySequence::ERR_INCOMPLETE_SEQUENCE[] PROGMEM = "Errore: sequenza termina dentro una chiave speciale";
-const char KeySequence::ERR_UNRECOGNIZED_KEY[] PROGMEM = "Tasto speciale non riconosciuto: ";
+// Definizione messaggi di errore in flash memory
+const char KeySequence::ERR_SEQ_TOO_LONG[] PROGMEM = "Seq too long";
+const char KeySequence::ERR_NESTED_BRACKET[] PROGMEM = "Nested bracket";
+const char KeySequence::ERR_UNOPENED_BRACKET[] PROGMEM = "Unopened bracket";
+const char KeySequence::ERR_INVALID_DELAY[] PROGMEM = "Invalid delay";
+const char KeySequence::ERR_DELAY_TOO_LARGE[] PROGMEM = "Delay too large";
+const char KeySequence::ERR_SPECIAL_TOO_LONG[] PROGMEM = "Special too long";
+const char KeySequence::ERR_UNBALANCED_BRACKETS[] PROGMEM = "Unbalanced brackets";
+const char KeySequence::ERR_BUFFER_FULL[] PROGMEM = "Buffer full";
+const char KeySequence::ERR_INVALID_SEQUENCE[] PROGMEM = "Invalid seq";
+const char KeySequence::ERR_INCOMPLETE_SEQUENCE[] PROGMEM = "Incomplete seq";
+const char KeySequence::ERR_UNRECOGNIZED_KEY[] PROGMEM = "Unknown key:";
 
 // Definizione delle mappature statiche
 const KeySequence::KeyMapping KeySequence::keyMappings[] = {
@@ -49,7 +48,23 @@ const KeySequence::KeyMapping KeySequence::keyMappings[] = {
 
 const int KeySequence::NUM_MAPPINGS = sizeof(keyMappings) / sizeof(KeyMapping);
 
-// Costruttore
+void KeySequence::printDebug(const __FlashStringHelper* message) {
+    if(debug) {
+        Serial.println(message);
+        Serial.flush();
+    }
+}
+
+void KeySequence::printDebug(const __FlashStringHelper* message, const char* value) {
+    if(debug) {
+        Serial.print(message);
+        Serial.print(F(" '"));
+        Serial.print(value);
+        Serial.println(F("'"));
+        Serial.flush();
+    }
+}
+
 KeySequence::KeySequence() {
     defaultDelay = 100;
     debug = false;
@@ -61,7 +76,16 @@ KeySequence::KeySequence() {
 }
 
 void KeySequence::begin() {
+    #ifdef ARDUINO_ARCH_ESP32
+    USB.begin();
+    #endif
     Keyboard.begin();
+}
+
+void KeySequence::releaseAll() {
+    if(debug) Serial.println(F("Releasing all keys"));
+    Keyboard.releaseAll();
+    pressedCount = 0;
 }
 
 void KeySequence::setDefaultDelay(int delay) {
@@ -88,31 +112,55 @@ bool KeySequence::isAutoReleaseEnabled() {
     return autoRelease;
 }
 
+bool KeySequence::isModifierKey(uint8_t keyCode) {
+    return keyCode == KEY_LEFT_SHIFT || keyCode == KEY_RIGHT_SHIFT ||
+           keyCode == KEY_LEFT_CTRL || keyCode == KEY_RIGHT_CTRL ||
+           keyCode == KEY_LEFT_ALT || keyCode == KEY_RIGHT_ALT ||
+           keyCode == KEY_LEFT_GUI || keyCode == KEY_RIGHT_GUI;
+}
+
 void KeySequence::pressKey(char key) {
+    if(debug) {
+        Serial.print(F("Pressing regular key: '"));
+        Serial.write(key);
+        Serial.println(F("'"));
+    }
     Keyboard.press(key);
+    delay(KEY_PRESS_DELAY);
     Keyboard.release(key);
     delay(KEY_PRESS_DELAY);
 }
 
-bool KeySequence::isValidDelayValue(const String& delayValue) {
-    if(!delayValue.length() || !delayValue.charAt(0)) {
-        if(debug) Serial.println((__FlashStringHelper*)ERR_INVALID_DELAY);
+void KeySequence::pressAndReleaseKey(uint8_t keyCode) {
+    if(debug) {
+        Serial.print(F("Pressing and releasing key code: "));
+        Serial.println(keyCode);
+    }
+    Keyboard.press(keyCode);
+    delay(KEY_PRESS_DELAY);
+    Keyboard.release(keyCode);
+    delay(KEY_PRESS_DELAY);
+}
+
+bool KeySequence::isValidDelayValue(const char* delayValue) {
+    if(!delayValue || !*delayValue) {
+        printDebug((__FlashStringHelper*)ERR_INVALID_DELAY);
         return false;
     }
     
-    for(unsigned int i = 0; i < delayValue.length(); i++) {
-        if(!isDigit(delayValue.charAt(i))) {
-            if(debug) Serial.println((__FlashStringHelper*)ERR_INVALID_DELAY);
+    for(const char* p = delayValue; *p; p++) {
+        if(!isDigit(*p)) {
+            printDebug((__FlashStringHelper*)ERR_INVALID_DELAY);
             return false;
         }
     }
     return true;
 }
 
-bool KeySequence::processDelayCommand(const String& specialKey) {
-    String delayValue = specialKey.substring(5);
+bool KeySequence::processDelayCommand(const char* specialKey) {
+    const char* delayValue = specialKey + 5;  // Skip "DELAY" prefix
     
-    if(delayValue.length() == 0) {
+    if(!*delayValue) {
         delay(0);
         return true;
     }
@@ -121,101 +169,141 @@ bool KeySequence::processDelayCommand(const String& specialKey) {
         return false;
     }
     
-    int delayTime = delayValue.toInt();
+    long delayTime = atol(delayValue);
     if(delayTime > MAX_DELAY_VALUE) {
-        if(debug) Serial.println((__FlashStringHelper*)ERR_DELAY_TOO_LARGE);
+        printDebug((__FlashStringHelper*)ERR_DELAY_TOO_LARGE);
         return false;
     }
+    
+    if(debug) {
+        Serial.print(F("Delaying for "));
+        Serial.print(delayTime);
+        Serial.println(F(" ms"));
+        Serial.flush();
+    }
+    
     delay(delayTime);
     return true;
 }
 
-bool KeySequence::processFunctionKey(const String& specialKey) {
-    if(specialKey.length() < 2 || specialKey[0] != 'F') return false;
+bool KeySequence::processFunctionKey(const char* specialKey) {
+    if(strlen(specialKey) < 2 || specialKey[0] != 'F') return false;
     
-    String numStr = specialKey.substring(1);
-    int num = numStr.toInt();
-    
+    int num = atoi(specialKey + 1);
     if(num >= 1 && num <= 12) {
         uint8_t keyCode = KEY_F1 + (num-1);
-        pressedKeys[pressedCount++] = keyCode;
-        Keyboard.press(keyCode);
-        return true;
-    }
-    return false;
-}
-
-bool KeySequence::processKeyMapping(const String& specialKey) {
-    for(int i = 0; i < NUM_MAPPINGS; i++) {
-        const KeyMapping& mapping = keyMappings[i];
-        if(specialKey == mapping.name || 
-           (mapping.alt_name && specialKey == mapping.alt_name)) {
-            pressedKeys[pressedCount++] = mapping.keyCode;
-            Keyboard.press(mapping.keyCode);
+        if(pressedCount < BUFFER_SIZE) {
+            pressedKeys[pressedCount++] = keyCode;
+            pressAndReleaseKey(keyCode);
             return true;
         }
     }
     return false;
 }
 
-bool KeySequence::processSpecialKey(String specialKey) {
-    if(specialKey.length() > MAX_SPECIAL_KEY_LENGTH) {
-        if(debug) Serial.println((__FlashStringHelper*)ERR_SPECIAL_TOO_LONG);
-        return false;
-    }
-
-    if(pressedCount >= BUFFER_SIZE) {
-        if(debug) Serial.println((__FlashStringHelper*)ERR_BUFFER_FULL);
-        return false;
-    }
-    
-    specialKey.toUpperCase();
-
-    // Gestione DELAY
-    if(specialKey.startsWith("DELAY")) {
-        return processDelayCommand(specialKey);
-    }
-
-    // Gestione RELEASE
-    if(specialKey == "RELEASE") {
-        Keyboard.releaseAll();
-        pressedCount = 0;
-        return true;
-    }
-
-    // Gestione tasti funzione
-    if(processFunctionKey(specialKey)) {
-        return true;
-    }
-
-    // Gestione mappature standard
-    if(processKeyMapping(specialKey)) {
-        return true;
-    }
-
-    if(debug) {
-        Serial.print((__FlashStringHelper*)ERR_UNRECOGNIZED_KEY);
-        Serial.println(specialKey);
+bool KeySequence::processKeyMapping(const char* specialKey) {
+    for(int i = 0; i < NUM_MAPPINGS; i++) {
+        const KeyMapping& mapping = keyMappings[i];
+        if(strcmp(specialKey, mapping.name) == 0 || 
+           (mapping.alt_name && strcmp(specialKey, mapping.alt_name) == 0)) {
+            if(pressedCount < BUFFER_SIZE) {
+                pressedKeys[pressedCount++] = mapping.keyCode;
+                if(isModifierKey(mapping.keyCode)) {
+                    if(debug) Serial.println(F("Pressing modifier key"));
+                    Keyboard.press(mapping.keyCode);
+                    delay(KEY_PRESS_DELAY);
+                } else {
+                    if(debug) Serial.println(F("Pressing and releasing regular special key"));
+                    pressAndReleaseKey(mapping.keyCode);
+                }
+                return true;
+            }
+        }
     }
     return false;
 }
 
-bool KeySequence::validateSequence(String sequence) {
-    if(sequence.length() > MAX_SEQUENCE_LENGTH) {
-        if(debug) Serial.println((__FlashStringHelper*)ERR_SEQ_TOO_LONG);
+bool KeySequence::processSpecialKey(const char* specialKey) {
+    if(!specialKey || strlen(specialKey) > MAX_SPECIAL_KEY_LENGTH) {
+        printDebug(F("Special key too long or null"));
+        return false;
+    }
+
+    char upperKey[MAX_SPECIAL_KEY_LENGTH + 1] = {0};
+    strncpy(upperKey, specialKey, MAX_SPECIAL_KEY_LENGTH);
+
+    if(debug) {
+        Serial.print(F("Processing special key: '"));
+        Serial.print(upperKey);
+        Serial.println(F("'"));
+        Serial.flush();
+    }
+
+    // Convert to uppercase
+    for(char* p = upperKey; *p; p++) {
+        *p = toupper(*p);
+    }
+
+    if(debug) {
+        Serial.print(F("After uppercase: '"));
+        Serial.print(upperKey);
+        Serial.println(F("'"));
+        Serial.flush();
+    }
+
+    if(strncmp(upperKey, "DELAY", 5) == 0) {
+        if(debug) Serial.println(F("Processing DELAY command"));
+        return processDelayCommand(upperKey);
+    }
+
+    if(strcmp(upperKey, "RELEASE") == 0) {
+        if(debug) Serial.println(F("Processing RELEASE command"));
+        releaseAll();
+        return true;
+    }
+
+    if(processFunctionKey(upperKey)) {
+        if(debug) Serial.println(F("Processed as function key"));
+        return true;
+    }
+
+    if(processKeyMapping(upperKey)) {
+        if(debug) Serial.println(F("Processed as standard key"));
+        return true;
+    }
+
+    if(debug) {
+        Serial.print(F("Unrecognized key: '"));
+        Serial.print(upperKey);
+        Serial.println(F("'"));
+        Serial.flush();
+    }
+    return false;
+}
+
+bool KeySequence::validateSequence(const char* sequence) {
+    if(!sequence) {
+        printDebug(F("Null sequence"));
+        return false;
+    }
+
+size_t len = strlen(sequence);
+    if(len > MAX_SEQUENCE_LENGTH) {
+        printDebug((__FlashStringHelper*)ERR_SEQ_TOO_LONG);
         return false;
     }
 
     int openBrackets = 0;
     bool inSpecialKey = false;
-    String currentKey = "";
+    char specialKey[MAX_SPECIAL_KEY_LENGTH + 1] = {0};
+    int specialKeyLen = 0;
     
-    for(unsigned int i = 0; i < sequence.length(); i++) {
-        char c = sequence.charAt(i);
+    for(const char* p = sequence; *p; p++) {
+        char c = *p;
         
         if(c == '{') {
             if(inSpecialKey) {
-                if(debug) Serial.println((__FlashStringHelper*)ERR_NESTED_BRACKET);
+                printDebug((__FlashStringHelper*)ERR_NESTED_BRACKET);
                 return false;
             }
             inSpecialKey = true;
@@ -225,99 +313,119 @@ bool KeySequence::validateSequence(String sequence) {
         
         if(c == '}') {
             if(!inSpecialKey) {
-                if(debug) Serial.println((__FlashStringHelper*)ERR_UNOPENED_BRACKET);
+                printDebug((__FlashStringHelper*)ERR_UNOPENED_BRACKET);
                 return false;
             }
             inSpecialKey = false;
             openBrackets--;
+            specialKey[specialKeyLen] = '\0';
             
-            if(currentKey.startsWith("DELAY")) {
-                String delayValue = currentKey.substring(5);
-                if(delayValue.length() > 0) {
-                    for(unsigned int j = 0; j < delayValue.length(); j++) {
-                        if(!isDigit(delayValue.charAt(j))) {
-                            if(debug) Serial.println((__FlashStringHelper*)ERR_INVALID_DELAY);
-                            return false;
-                        }
-                    }
-                    if(delayValue.toInt() > MAX_DELAY_VALUE) {
-                        if(debug) Serial.println((__FlashStringHelper*)ERR_DELAY_TOO_LARGE);
+            if(strncmp(specialKey, "DELAY", 5) == 0) {
+                const char* delayValue = specialKey + 5;
+                if(*delayValue) {
+                    char* endPtr;
+                    long value = strtol(delayValue, &endPtr, 10);
+                    if(*endPtr != '\0' || value > MAX_DELAY_VALUE) {
+                        printDebug((__FlashStringHelper*)ERR_INVALID_DELAY);
                         return false;
                     }
                 }
             }
-            currentKey = "";
+            specialKeyLen = 0;
             continue;
         }
         
         if(inSpecialKey) {
-            currentKey += c;
-            if(currentKey.length() > MAX_SPECIAL_KEY_LENGTH) {
-                if(debug) Serial.println((__FlashStringHelper*)ERR_SPECIAL_TOO_LONG);
+            if(specialKeyLen >= MAX_SPECIAL_KEY_LENGTH) {
+                printDebug((__FlashStringHelper*)ERR_SPECIAL_TOO_LONG);
                 return false;
             }
+            specialKey[specialKeyLen++] = c;
         }
     }
     
     if(openBrackets != 0) {
-        if(debug) Serial.println((__FlashStringHelper*)ERR_UNBALANCED_BRACKETS);
+        printDebug((__FlashStringHelper*)ERR_UNBALANCED_BRACKETS);
         return false;
     }
     
     return true;
 }
 
-void KeySequence::sendSequence(String sequence) {
+void KeySequence::sendSequence(const char* sequence) {
     sendSequenceWithDelay(sequence, defaultDelay);
 }
 
-void KeySequence::sendSequenceWithDelay(String sequence, int delayTime) {
+void KeySequence::sendSequenceWithDelay(const char* sequence, int delayTime) {
+    if(!sequence) {
+        printDebug(F("Null sequence received"));
+        return;
+    }
+
     if(!validateSequence(sequence)) {
-        if(debug) Serial.println((__FlashStringHelper*)ERR_INVALID_SEQUENCE);
+        printDebug((__FlashStringHelper*)ERR_INVALID_SEQUENCE);
         return;
     }
     
     bool inSpecialKey = false;
-    String specialKey = "";
+    char specialKey[MAX_SPECIAL_KEY_LENGTH + 1] = {0};
+    int specialKeyLen = 0;
     pressedCount = 0;
     Keyboard.releaseAll(); // Reset iniziale dello stato
     
-    for (int i = 0; i < sequence.length(); i++) {
-        char currentChar = sequence.charAt(i);
+    if(debug) {
+        Serial.print(F("Processing sequence: '"));
+        Serial.print(sequence);
+        Serial.println(F("'"));
+        Serial.flush();
+    }
+    
+    for(const char* p = sequence; *p; p++) {
+        char currentChar = *p;
         
-        if (currentChar == '{') {
+        if(currentChar == '{') {
+            if(debug) Serial.println(F("Found opening bracket"));
             inSpecialKey = true;
+            specialKeyLen = 0;
             continue;
         }
         
-        if (currentChar == '}') {
+        if(currentChar == '}') {
+            if(debug) {
+                specialKey[specialKeyLen] = '\0';
+                Serial.print(F("Found closing bracket, key: '"));
+                Serial.print(specialKey);
+                Serial.println(F("'"));
+            }
             inSpecialKey = false;
+            specialKey[specialKeyLen] = '\0';
             bool recognized = processSpecialKey(specialKey);
-            if (!recognized) {
-                for(unsigned int j = 0; j < specialKey.length(); j++) {
-                    pressKey(specialKey.charAt(j));
+            if(!recognized) {
+                if(debug) {
+                    Serial.println(F("Key not recognized, ignoring"));
                 }
             }
-            specialKey = "";
+            specialKeyLen = 0;
             continue;
         }
         
-        if (inSpecialKey) {
-            specialKey += currentChar;
-        }
-        else {
+        if(inSpecialKey) {
+            if(specialKeyLen < MAX_SPECIAL_KEY_LENGTH) {
+                specialKey[specialKeyLen++] = currentChar;
+            }
+        } else {
             pressKey(currentChar);
         }
     }
     
-    if (inSpecialKey && debug) {
-        Serial.println((__FlashStringHelper*)ERR_INCOMPLETE_SEQUENCE);
+    if(inSpecialKey) {
+        printDebug(F("Warning: unclosed special key sequence"));
     }
     
     delay(delayTime);
     
-    if (autoRelease) {
-        Keyboard.releaseAll();
-        pressedCount = 0;
+    if(autoRelease) {
+        if(debug) Serial.println(F("Auto-releasing all keys"));
+        releaseAll();
     }
 }
