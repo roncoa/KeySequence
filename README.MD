@@ -291,7 +291,11 @@ KeySequence/
 
 ## Cronologia Versioni
 
-### v1.2.0 (Versione Corrente)
+### v1.2.1 (Versione Corrente)
+- BugFix pressKey
+- Esegue releaseAll() prima di ENTER
+
+### v1.2.0
 - Aggiunto supporto per ESP32 (testato su ESP32-S3)
 - Gestione automatica dell'inizializzazione USB per ESP32
 - Aumentato KEY_PRESS_DELAY default a 20ms per migliore compatibilità
