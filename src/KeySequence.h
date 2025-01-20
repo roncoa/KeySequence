@@ -1,3 +1,10 @@
+/**********************
+  KeySequence.h
+  v 1.2.1
+  by roncoa@gmail.com
+  20/01/2025
+***********************/
+
 #ifndef KeySequence_h
 #define KeySequence_h
 
