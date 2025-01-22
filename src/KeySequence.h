@@ -1,17 +1,16 @@
 /**********************
   KeySequence.h
-  v 1.2.1
+  v 1.3.0
   by roncoa@gmail.com
-  20/01/2025
+  22/01/2025
 ***********************/
-
 #ifndef KeySequence_h
 #define KeySequence_h
 
 #ifdef ARDUINO_ARCH_ESP32
 #include "USB.h"
 #include "USBHIDKeyboard.h"
-extern USBHIDKeyboard Keyboard;
+static USBHIDKeyboard Keyboard;
 #else
 #include "Arduino.h"
 #include "Keyboard.h"
@@ -28,15 +27,18 @@ class KeySequence {
       const char* alt_name;
       uint8_t keyCode;
     };
+
     // Mappature statiche dei tasti
     static const KeyMapping keyMappings[];
     static const int NUM_MAPPINGS;
+
     // Costanti ottimizzate per la memoria
     static const unsigned int KEY_PRESS_DELAY = 20;  // Aumentato da 5 a 20
     static const int BUFFER_SIZE = 5;
     static const unsigned int MAX_SEQUENCE_LENGTH = 128;
     static const unsigned int MAX_SPECIAL_KEY_LENGTH = 10;
     static const unsigned int MAX_DELAY_VALUE = 10000;
+
     // Messaggi di errore in flash memory
     static const char ERR_SEQ_TOO_LONG[] PROGMEM;
     static const char ERR_NESTED_BRACKET[] PROGMEM;
@@ -49,12 +51,14 @@ class KeySequence {
     static const char ERR_INVALID_SEQUENCE[] PROGMEM;
     static const char ERR_INCOMPLETE_SEQUENCE[] PROGMEM;
     static const char ERR_UNRECOGNIZED_KEY[] PROGMEM;
+
     // Variabili membro
     uint8_t pressedKeys[BUFFER_SIZE];
     int pressedCount;
     int defaultDelay;
     bool debug;
     bool autoRelease;
+
     // Metodi helper privati
     bool processDelayCommand(const char* specialKey);
     bool processFunctionKey(const char* specialKey);
@@ -66,6 +70,7 @@ class KeySequence {
     void printDebug(const __FlashStringHelper* message, const char* value);
     bool isModifierKey(uint8_t keyCode);
     void pressAndReleaseKey(uint8_t keyCode);
+
   public:
     KeySequence();
     void begin();
