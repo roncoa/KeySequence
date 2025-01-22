@@ -21,8 +21,6 @@ You can install directly in the Arduino IDE using the Library Manager. Look unde
 ### Manual via ZIP file
 You can use the GitHub 'Download ZIP' feature to get an installable "library" for use with the Arduino IDE. Select 'Sketch -> Include Library -> Add .ZIP Libary' from the Arduino IDE 2.x and select the zip file you downloaded from GitHub, then select open.
 
-
-
 ## Hardware Requirements
 - Arduino board with USB keyboard support (e.g., Leonardo, Micro, Pro Micro)
 - ESP32 with USB support (e.g., ESP32-S3)
