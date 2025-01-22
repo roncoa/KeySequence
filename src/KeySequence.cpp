@@ -101,13 +101,13 @@ void KeySequence::begin() {
 
 void KeySequence::releaseAll() {
   if (debug) Serial.println(F("Releasing all keys"));
-#ifdef ARDUINO_ARCH_ESP32
-  for (int i = 0; i < pressedCount; i++) {
-    Keyboard.release(pressedKeys[i]);
-  }
-#else
+//#ifdef ARDUINO_ARCH_ESP32
+//  for (int i = 0; i < pressedCount; i++) {
+//    Keyboard.release(pressedKeys[i]);
+//  }
+//#else
   Keyboard.releaseAll();
-#endif
+//#endif
   pressedCount = 0;
 }
 
@@ -148,14 +148,8 @@ void KeySequence::pressKey(char key) {
     Serial.write(key);
     Serial.println(F("'"));
   }
-#ifdef ARDUINO_ARCH_ESP32
-  Keyboard.write(key);
-#else
   Keyboard.press(key);
-#endif
   delay(KEY_PRESS_DELAY);
-  //Keyboard.release(key);
-  //delay(KEY_PRESS_DELAY);
 }
 
 void KeySequence::pressAndReleaseKey(uint8_t keyCode) {
@@ -163,11 +157,7 @@ void KeySequence::pressAndReleaseKey(uint8_t keyCode) {
     Serial.print(F("Pressing and releasing key code: "));
     Serial.println(keyCode);
   }
-#ifdef ARDUINO_ARCH_ESP32
   Keyboard.press(keyCode);
-#else
-  Keyboard.press(keyCode);
-#endif
   delay(KEY_PRESS_DELAY);
   Keyboard.release(keyCode);
   delay(KEY_PRESS_DELAY);
@@ -178,7 +168,6 @@ bool KeySequence::isValidDelayValue(const char* delayValue) {
     printDebug((__FlashStringHelper*)ERR_INVALID_DELAY);
     return false;
   }
-
   for (const char* p = delayValue; *p; p++) {
     if (!isDigit(*p)) {
       printDebug((__FlashStringHelper*)ERR_INVALID_DELAY);
@@ -190,29 +179,24 @@ bool KeySequence::isValidDelayValue(const char* delayValue) {
 
 bool KeySequence::processDelayCommand(const char* specialKey) {
   const char* delayValue = specialKey + 5;  // Skip "DELAY" prefix
-
   if (!*delayValue) {
     delay(0);
     return true;
   }
-
   if (!isValidDelayValue(delayValue)) {
     return false;
   }
-
   long delayTime = atol(delayValue);
   if (delayTime > MAX_DELAY_VALUE) {
     printDebug((__FlashStringHelper*)ERR_DELAY_TOO_LARGE);
     return false;
   }
-
   if (debug) {
     Serial.print(F("Delaying for "));
     Serial.print(delayTime);
     Serial.println(F(" ms"));
     Serial.flush();
   }
-
   delay(delayTime);
   return true;
 }
@@ -241,11 +225,7 @@ bool KeySequence::processKeyMapping(const char* specialKey) {
         pressedKeys[pressedCount++] = mapping.keyCode;
         if (isModifierKey(mapping.keyCode)) {
           if (debug) Serial.println(F("Pressing modifier key"));
-#ifdef ARDUINO_ARCH_ESP32
           Keyboard.press(mapping.keyCode);
-#else
-          Keyboard.press(mapping.keyCode);
-#endif
           delay(KEY_PRESS_DELAY);
         } else {
           if (debug) Serial.println(F("Pressing and releasing regular special key"));
@@ -263,50 +243,40 @@ bool KeySequence::processSpecialKey(const char* specialKey) {
     printDebug(F("Special key too long or null"));
     return false;
   }
-
   char upperKey[MAX_SPECIAL_KEY_LENGTH + 1] = {0};
   strncpy(upperKey, specialKey, MAX_SPECIAL_KEY_LENGTH);
-
   if (debug) {
     Serial.print(F("Processing special key: '"));
     Serial.print(upperKey);
     Serial.println(F("'"));
     Serial.flush();
   }
-
-  // Convert to uppercase
   for (char* p = upperKey; *p; p++) {
     *p = toupper(*p);
   }
-
   if (debug) {
     Serial.print(F("After uppercase: '"));
     Serial.print(upperKey);
     Serial.println(F("'"));
     Serial.flush();
   }
-
   if (strncmp(upperKey, "DELAY", 5) == 0) {
     if (debug) Serial.println(F("Processing DELAY command"));
     return processDelayCommand(upperKey);
   }
-
   if (strcmp(upperKey, "RELEASE") == 0) {
     if (debug) Serial.println(F("Processing RELEASE command"));
     releaseAll();
     return true;
   }
-
   if (processFunctionKey(upperKey)) {
     if (debug) Serial.println(F("Processed as function key"));
     return true;
   }
-
   if (processKeyMapping(upperKey)) {
     if (debug) Serial.println(F("Processed as standard key"));
     return true;
   }
-
   if (debug) {
     Serial.print(F("Unrecognized key: '"));
     Serial.print(upperKey);
@@ -321,21 +291,17 @@ bool KeySequence::validateSequence(const char* sequence) {
     printDebug(F("Null sequence"));
     return false;
   }
-
   size_t len = strlen(sequence);
   if (len > MAX_SEQUENCE_LENGTH) {
     printDebug((__FlashStringHelper*)ERR_SEQ_TOO_LONG);
     return false;
   }
-
   int openBrackets = 0;
   bool inSpecialKey = false;
   char specialKey[MAX_SPECIAL_KEY_LENGTH + 1] = {0};
   int specialKeyLen = 0;
-
   for (const char* p = sequence; *p; p++) {
     char c = *p;
-
     if (c == '{') {
       if (inSpecialKey) {
         printDebug((__FlashStringHelper*)ERR_NESTED_BRACKET);
@@ -345,7 +311,6 @@ bool KeySequence::validateSequence(const char* sequence) {
       openBrackets++;
       continue;
     }
-
     if (c == '}') {
       if (!inSpecialKey) {
         printDebug((__FlashStringHelper*)ERR_UNOPENED_BRACKET);
@@ -354,7 +319,6 @@ bool KeySequence::validateSequence(const char* sequence) {
       inSpecialKey = false;
       openBrackets--;
       specialKey[specialKeyLen] = '\0';
-
       if (strncmp(specialKey, "DELAY", 5) == 0) {
         const char* delayValue = specialKey + 5;
         if (*delayValue) {
@@ -369,7 +333,6 @@ bool KeySequence::validateSequence(const char* sequence) {
       specialKeyLen = 0;
       continue;
     }
-
     if (inSpecialKey) {
       if (specialKeyLen >= MAX_SPECIAL_KEY_LENGTH) {
         printDebug((__FlashStringHelper*)ERR_SPECIAL_TOO_LONG);
@@ -378,12 +341,10 @@ bool KeySequence::validateSequence(const char* sequence) {
       specialKey[specialKeyLen++] = c;
     }
   }
-
   if (openBrackets != 0) {
     printDebug((__FlashStringHelper*)ERR_UNBALANCED_BRACKETS);
     return false;
   }
-
   return true;
 }
 
@@ -396,35 +357,29 @@ void KeySequence::sendSequenceWithDelay(const char* sequence, int delayTime) {
     printDebug(F("Null sequence received"));
     return;
   }
-
   if (!validateSequence(sequence)) {
     printDebug((__FlashStringHelper*)ERR_INVALID_SEQUENCE);
     return;
   }
-
   bool inSpecialKey = false;
   char specialKey[MAX_SPECIAL_KEY_LENGTH + 1] = {0};
   int specialKeyLen = 0;
   pressedCount = 0;
   releaseAll();
-
   if (debug) {
     Serial.print(F("Processing sequence: '"));
     Serial.print(sequence);
     Serial.println(F("'"));
     Serial.flush();
   }
-
   for (const char* p = sequence; *p; p++) {
     char currentChar = *p;
-
     if (currentChar == '{') {
       if (debug) Serial.println(F("Found opening bracket"));
       inSpecialKey = true;
       specialKeyLen = 0;
       continue;
     }
-
     if (currentChar == '}') {
       if (debug) {
         specialKey[specialKeyLen] = '\0';
@@ -443,7 +398,6 @@ void KeySequence::sendSequenceWithDelay(const char* sequence, int delayTime) {
       specialKeyLen = 0;
       continue;
     }
-
     if (inSpecialKey) {
       if (specialKeyLen < MAX_SPECIAL_KEY_LENGTH) {
         specialKey[specialKeyLen++] = currentChar;
@@ -455,13 +409,10 @@ void KeySequence::sendSequenceWithDelay(const char* sequence, int delayTime) {
       }
     }
   }
-
   if (inSpecialKey) {
     printDebug(F("Warning: unclosed special key sequence"));
   }
-
   delay(delayTime);
-
   if (autoRelease) {
     if (debug) Serial.println(F("Auto-releasing all keys"));
     releaseAll();
