@@ -291,7 +291,10 @@ KeySequence/
 
 ## Version History
 
-### v1.2.1 (Current Version)
+### v1.3.0 (Current Version)
+- BugFix ESP32 support (tested on ESP32-S3)
+
+### v1.2.1
 - BugFix pressKey
 - Executes releaseAll() before ENTER
 
