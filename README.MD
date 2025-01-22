@@ -30,7 +30,7 @@ You can use the GitHub 'Download ZIP' feature to get an installable "library" fo
 
 ### Initialization
 ```cpp
-#include "KeySequence.h"
+#include <KeySequence.h>
 
 KeySequence keys;
 
