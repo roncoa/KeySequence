@@ -16,8 +16,10 @@ KeySequence is an Arduino/ESP32 library for sending complex key sequences, inclu
 - Automatic USB initialization for all platforms
 
 ## Installation
-Arduino IDE Library Manager  
+### Arduino IDE Library Manager  
 You can install directly in the Arduino IDE using the Library Manager. Look under the menu 'Sketch -> Include Library -> Manage Libraries...' to open the Library Manager, then enter 'KeySequence' in the search field and it should find this project and you can click INSTALL.
+### Manual via ZIP file
+You can use the GitHub 'Download ZIP' feature to get an installable "library" for use with the Arduino IDE. Select 'Sketch -> Include Library -> Add .ZIP Libary' from the Arduino IDE 2.x and select the zip file you downloaded from GitHub, then select open.
 
 
 
