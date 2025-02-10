@@ -1,5 +1,12 @@
 # KeySequence Library Documentation
 
+[![GitHub release](https://img.shields.io/github/release/roncoa/KeySequence.svg)](https://github.com/roncoa/KeySequence/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/roncoa/KeySequence.svg?style=social&label=Star)](https://github.com/roncoa/KeySequence/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/roncoa/KeySequence.svg?style=social&label=Fork)](https://github.com/roncoa/KeySequence/network)
+
+If you like **SimRacingController Library**... buy me a beer  [![donate](https://img.shields.io/badge/donate-PayPal-blue.svg)](https://paypal.me/roncoa) 
+
 ## Overview
 KeySequence is an Arduino/ESP32 library for sending complex key sequences, including special keys, delays, and modifiers. It supports all standard keyboard keys, function keys, and modifier keys with advanced control over key press and release timing.
 
